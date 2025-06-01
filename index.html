@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleEscrow Demo - GTL Labs</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 2rem; margin-bottom: 2rem; }
+        .title { font-size: 2.5rem; font-weight: bold; color: #16a34a; margin-bottom: 1rem; text-align: center; }
+        .subtitle { color: #666; margin-bottom: 2rem; text-align: center; }
+        .highlight { background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 10px; padding: 1rem; margin: 2rem 0; color: #166534; text-align: center; }
+        .btn { background: #16a34a; color: white; padding: 1rem 2rem; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; font-size: 1.1rem; margin: 0.5rem; }
+        .btn:hover { background: #15803d; }
+        .btn-small { background: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; margin: 0.25rem; font-size: 0.9rem; }
+        .btn-small:hover { background: #2563eb; }
+        .btn-release { background: #16a34a; color: white; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; margin: 0.25rem; font-weight: 600; }
+        .btn-release:hover { background: #15803d; }
+        .btn-secondary { background: #6b7280; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; display: inline-block; }
+        .milestone { display: flex; justify-content: space-between; padding: 1rem; margin: 0.5rem 0; border-radius: 8px; }
+        .milestone.completed { background: #f0fdf4; }
+        .milestone.pending { background: #f9fafb; }
+        .progress-bar { background: #e5e7eb; height: 8px; border-radius: 4px; margin: 1rem 0; }
+        .progress-fill { background: #16a34a; height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+        .escrow-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
+        .amount { font-size: 2rem; font-weight: bold; }
+        .success-banner { background: #f0fdf4; border: 2px solid #16a34a; border-radius: 10px; padding: 1.5rem; text-align: center; color: #166534; }
+        .notification { position: fixed; bottom: 20px; right: 20px; background: #16a34a; color: white; padding: 1rem 1.5rem; border-radius: 8px; z-index: 1000; display: none; }
+        .hidden { display: none; }
+        .show { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Landing Page -->
+        <div id="landing" class="card">
+            <div style="text-align: center; font-size: 4rem; margin-bottom: 1rem;">🌱</div>
+            <h1 class="title">Simple Escrow Demo</h1>
+            <p class="subtitle">Owner-controlled milestone-based payments</p>
+            
+            <div class="highlight">
+                <strong>Perfect for:</strong> Small businesses, agricultural suppliers, managed escrow services
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn" onclick="startDemo()">Connect Wallet & Start Demo</button>
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem; color: #666; font-size: 0.9rem;">
+                <p>This demo shows how GTL Labs' Tier 1 Managed Escrow service works</p>
+                <p style="margin-top: 1rem;">
+                    <a href="https://maxsweet1.github.io/gtl-labs-site/" style="color: #16a34a;">← Back to GTL Labs</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="hidden">
+            <!-- Header -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h2 style="font-size: 2rem; color: #16a34a; margin-bottom: 0.5rem;">🌱 Simple Escrow Demo</h2>
+                        <p style="color: #666; font-size: 0.9rem;">Connected: 0x1234...7890 | Owner-Controlled Payments</p>
+                        <p style="color: #16a34a; font-size: 0.8rem; font-weight: 600;">GTL Labs Tier 1 Managed Service - $500 setup + 2% success fee</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 2rem; font-weight: bold;" id="escrowCount">2</div>
+                        <div style="color: #666; font-size: 0.9rem;">Total Escrows</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1.3rem; font-weight: bold;">Your Escrow Contracts</h3>
+                    <div>
+                        <button class="btn" onclick="showCreateForm()">+ Create New Escrow</button>
+                        <a href="https://maxsweet1.github.io/gtl-labs-site/" class="btn-secondary">← GTL Labs</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Escrow Form -->
+            <div id="createForm" class="card hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.5rem; color: #16a34a; font-weight: bold;">Create New Escrow</h3>
+                    <button onclick="hideCreateForm()" style="background: none; border: none; color: #666; cursor: pointer; font-size: 1rem;">← Back</button>
+                </div>
+
+                <div style="display: grid; gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Project Title</label>
+                        <input type="text" id="projectTitle" placeholder="Enter project title" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Farmer Address</label>
+                        <input type="text" id="farmerAddress" placeholder="0x..." style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Deposit Amount (USDC)</label>
+                        <input type="number" id="depositAmount" placeholder="5000" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="font-weight: 600;">Milestones</label>
+                            <span id="totalPercent" style="font-size: 0.9rem; color: #dc2626;">Total: 100%</span>
+                        </div>
+                        <div id="milestoneInputs">
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                                <input type="number" value="50" placeholder="%" style="width: 80px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" onchange="updateTotal()">
+                                <input type="text" value="Project initiation" placeholder="Description" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                                <input type="number" value="50" placeholder="%" style="width: 80px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" onchange="updateTotal()">
+                                <input type="text" value="Work completion" placeholder="Description" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="fillSampleData()" style="background: #dbeafe; color: #1e40af; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer;">📝 Fill Sample Data</button>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="hideCreateForm()" style="background: #f9fafb; color: #374151; border: 1px solid #d1d5db; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    <button onclick="createNewEscrow()" class="btn">Create Escrow</button>
+                </div>
+            </div>
+
+            <!-- Escrow 1 -->
+            <div class="card">
+                <div class="escrow-header">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Organic Wheat Production Contract</div>
+                        <div style="color: #666; font-size: 0.9rem;">Farmer: 0xabc1...7890</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="amount">$2,500.00</div>
+                        <div style="color: #666; font-size: 0.9rem;">USDC</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <span>Progress: <span id="progress1">60</span>%</span>
+                    <span id="status1">Active</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar1" style="width: 60%"></div>
+                </div>
+
+                <div>
+                    <div class="milestone completed">
+                        <div><span>✅</span> Land preparation completed</div>
+                        <div style="font-weight: 600;">25%</div>
+                    </div>
+                    <div class="milestone completed">
+                        <div><span>✅</span> Planting and seeding finished</div>
+                        <div style="font-weight: 600;">35%</div>
+                    </div>
+                    <div class="milestone pending" id="milestone1_2">
+                        <div><span>⏳</span> Crop maintenance and care</div>
+                        <div style="font-weight: 600;">25%</div>
+                    </div>
+                    <div class="milestone pending" id="milestone1_3">
+                        <div><span>⏳</span> Harvest and delivery</div>
+                        <div style="font-weight: 600;">15%</div>
+                    </div>
+                </div>
+
+                <div id="buttons1">
+                    <button class="btn-small" onclick="completeMilestone(1, 2, 25)">Complete: Crop maintenance and care</button>
+                    <button class="btn-small" onclick="completeMilestone(1, 3, 15)">Complete: Harvest and delivery</button>
+                </div>
+            </div>
+
+            <!-- Escrow 2 -->
+            <div class="card">
+                <div class="escrow-header">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Tomato Greenhouse Project</div>
+                        <div style="color: #666; font-size: 0.9rem;">Farmer: 0xdef2...8901</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="amount">$1,800.00</div>
+                        <div style="color: #666; font-size: 0.9rem;">USDC</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <span>Progress: <span id="progress2">40</span>%</span>
+                    <span id="status2">Active</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar2" style="width: 40%"></div>
+                </div>
+
+                <div>
+                    <div class="milestone completed">
+                        <div><span>✅</span> Greenhouse setup</div>
+                        <div style="font-weight: 600;">40%</div>
+                    </div>
+                    <div class="milestone pending" id="milestone2_1">
+                        <div><span>⏳</span> Planting phase</div>
+                        <div style="font-weight: 600;">30%</div>
+                    </div>
+                    <div class="milestone pending" id="milestone2_2">
+                        <div><span>⏳</span> Harvest and packaging</div>
+                        <div style="font-weight: 600;">30%</div>
+                    </div>
+                </div>
+
+                <div id="buttons2">
+                    <button class="btn-small" onclick="completeMilestone(2, 1, 30)">Complete: Planting phase</button>
+                    <button class="btn-small" onclick="completeMilestone(2, 2, 30)">Complete: Harvest and packaging</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        var nextEscrowId = 3;
+
+        function startDemo() {
+            document.getElementById('landing').style.display = 'none';
+            document.getElementById('dashboard').classList.remove('hidden');
+            showNotification("Wallet connected! You are the escrow owner.");
+        }
+
+        function showNotification(message) {
+            var notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(function() {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function showCreateForm() {
+            document.getElementById('createForm').classList.remove('hidden');
+            updateTotal();
+        }
+
+        function hideCreateForm() {
+            document.getElementById('createForm').classList.add('hidden');
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('projectTitle').value = '';
+            document.getElementById('farmerAddress').value = '';
+            document.getElementById('depositAmount').value = '';
+            
+            var inputs = document.getElementById('milestoneInputs');
+            inputs.innerHTML = '<div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;"><input type="number" value="50" placeholder="%" style="width: 80px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" onchange="updateTotal()"><input type="text" value="Project initiation" placeholder="Description" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"></div><div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;"><input type="number" value="50" placeholder="%" style="width: 80px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" onchange="updateTotal()"><input type="text" value="Work completion" placeholder="Description" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"></div>';
+            updateTotal();
+        }
+
+        function fillSampleData() {
+            document.getElementById('projectTitle').value = 'Corn Production Agreement';
+            document.getElementById('farmerAddress').value = '0x9999888877776666555544443333222211110000';
+            document.getElementById('depositAmount').value = '4500';
+            
+            var inputs = document.getElementById('milestoneInputs');
+            inputs.innerHTML = '<div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;"><input type="number" value="30" placeholder="%" style="width: 80px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" onchange="updateTotal()"><input type="text" value="Land preparation" placeholder="Description" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"></div><div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;"><input type="number" value="40" placeholder="%" style="width: 80px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" onchange="updateTotal()"><input type="text" value="Planting and care" placeholder="Description" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"></div><div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;"><input type="number" value="30" placeholder="%" style="width: 80px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" onchange="updateTotal()"><input type="text" value="Harvest and delivery" placeholder="Description" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"></div>';
+            updateTotal();
+            showNotification('Sample data loaded!');
+        }
+
+        function updateTotal() {
+            var percentInputs = document.querySelectorAll('#milestoneInputs input[type="number"]');
+            var total = 0;
+            for (var i = 0; i < percentInputs.length; i++) {
+                total += parseInt(percentInputs[i].value) || 0;
+            }
+            
+            var totalElement = document.getElementById('totalPercent');
+            totalElement.textContent = 'Total: ' + total + '%';
+            if (total === 100) {
+                totalElement.style.color = '#16a34a';
+            } else {
+                totalElement.style.color = '#dc2626';
+            }
+        }
+
+        function createNewEscrow() {
+            var title = document.getElementById('projectTitle').value;
+            var farmer = document.getElementById('farmerAddress').value;
+            var amount = document.getElementById('depositAmount').value;
+            
+            if (!title || !farmer || !amount) {
+                showNotification('Please fill all fields');
+                return;
+            }
+            
+            var percentInputs = document.querySelectorAll('#milestoneInputs input[type="number"]');
+            var descInputs = document.querySelectorAll('#milestoneInputs input[type="text"]');
+            
+            var total = 0;
+            for (var i = 0; i < percentInputs.length; i++) {
+                total += parseInt(percentInputs[i].value) || 0;
+            }
+            
+            if (total !== 100) {
+                showNotification('Percentages must equal 100%');
+                return;
+            }
+
+            var milestonesHtml = '';
+            var buttonsHtml = '';
+            
+            for (var idx = 0; idx < percentInputs.length; idx++) {
+                var percent = percentInputs[idx].value;
+                var desc = descInputs[idx].value;
+                
+                milestonesHtml += '<div class="milestone pending" id="milestone' + nextEscrowId + '_' + idx + '">';
+                milestonesHtml += '<div><span>⏳</span> ' + desc + '</div>';
+                milestonesHtml += '<div style="font-weight: 600;">' + percent + '%</div>';
+                milestonesHtml += '</div>';
+                    
+                buttonsHtml += '<button class="btn-small" onclick="completeMilestone(' + nextEscrowId + ', ' + idx + ', ' + percent + ')">Complete: ' + desc + '</button>';
+            }
+
+            var newEscrowHtml = '<div class="card">';
+            newEscrowHtml += '<div class="escrow-header">';
+            newEscrowHtml += '<div>';
+            newEscrowHtml += '<div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">' + title + '</div>';
+            newEscrowHtml += '<div style="color: #666; font-size: 0.9rem;">Farmer: ' + farmer.substring(0, 6) + '...' + farmer.substring(farmer.length - 4) + '</div>';
+            newEscrowHtml += '</div>';
+            newEscrowHtml += '<div style="text-align: right;">';
+            newEscrowHtml += '<div class="amount">$' + parseFloat(amount).toFixed(2) + '</div>';
+            newEscrowHtml += '<div style="color: #666; font-size: 0.9rem;">USDC</div>';
+            newEscrowHtml += '</div>';
+            newEscrowHtml += '</div>';
+            newEscrowHtml += '<div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem;">';
+            newEscrowHtml += '<span>Progress: <span id="progress' + nextEscrowId + '">0</span>%</span>';
+            newEscrowHtml += '<span id="status' + nextEscrowId + '">Active</span>';
+            newEscrowHtml += '</div>';
+            newEscrowHtml += '<div class="progress-bar">';
+            newEscrowHtml += '<div class="progress-fill" id="progressBar' + nextEscrowId + '" style="width: 0%"></div>';
+            newEscrowHtml += '</div>';
+            newEscrowHtml += '<div>' + milestonesHtml + '</div>';
+            newEscrowHtml += '<div id="buttons' + nextEscrowId + '">' + buttonsHtml + '</div>';
+            newEscrowHtml += '</div>';
+
+            document.getElementById('dashboard').insertAdjacentHTML('beforeend', newEscrowHtml);
+            
+            var countElement = document.getElementById('escrowCount');
+            var currentCount = parseInt(countElement.textContent);
+            countElement.textContent = currentCount + 1;
+            
+            nextEscrowId++;
+            hideCreateForm();
+            showNotification('New escrow created!');
+        }
+
+        function completeMilestone(escrowId, milestoneId, percent) {
+            var milestone = document.getElementById('milestone' + escrowId + '_' + milestoneId);
+            var buttons = document.getElementById('buttons' + escrowId);
+            var progressBar = document.getElementById('progressBar' + escrowId);
+            var progressText = document.getElementById('progress' + escrowId);
+
+            var milestoneText = milestone.querySelector('div').textContent.split('⏳ ')[1];
+            milestone.className = 'milestone completed';
+            milestone.innerHTML = '<div><span>✅</span> ' + milestoneText + '</div><div style="font-weight: 600;">' + percent + '%</div>';
+
+            var currentProgress = parseInt(progressText.textContent) + parseInt(percent);
+            progressBar.style.width = currentProgress + '%';
+            progressText.textContent = currentProgress;
+
+            var allButtons = buttons.querySelectorAll('button');
+            for (var i = 0; i < allButtons.length; i++) {
+                if (allButtons[i].onclick && allButtons[i].onclick.toString().indexOf('(' + escrowId + ', ' + milestoneId + ',') > -1) {
+                    allButtons[i].remove();
+                    break;
+                }
+            }
+
+            if (currentProgress >= 100) {
+                buttons.innerHTML = '<button class="btn-release" onclick="releaseFunds(' + escrowId + ')">Release Funds</button>';
+                showNotification("All milestones complete! You can now release funds.");
+            } else {
+                showNotification("Milestone completed!");
+            }
+        }
+
+        function releaseFunds(escrowId) {
+            var buttons = document.getElementById('buttons' + escrowId);
+            var status = document.getElementById('status' + escrowId);
+            var escrowCard = buttons.closest('.card');
+            var amountText = escrowCard.querySelector('.amount').textContent.replace('$', '').replace(',', '');
+
+            buttons.innerHTML = '<div class="success-banner"><div style="font-size: 2rem; margin-bottom: 0.5rem;">🎉</div><div style="font-weight: bold; margin-bottom: 0.5rem;">Funds Released to Farmer</div><div style="font-size: 0.9rem;">All milestones completed • $' + amountText + ' USDC paid out</div></div>';
+
+            status.textContent = 'Completed';
+            showNotification('🎉 Success! $' + amountText + ' USDC released to farmer!');
+        }
+    </script>
+</body>
+</html>
